@@ -1,9 +1,13 @@
-import Image from "next/image";
+import SnippetsForm from "@/components/SnippetsForm";
+import SnippetsList from "@/components/SnippetsList";
+import SnippetsSearchForm from "@/components/SnippetsSearchForm";
 
 export default function Home() {
     return (
         <div>
-            <h1>Home </h1>
+            <SnippetsForm />
+            <SnippetsSearchForm />
+            <SnippetsList />
         </div>
     );
 }
