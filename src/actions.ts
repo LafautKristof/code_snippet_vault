@@ -3,13 +3,15 @@ import { cookies } from "next/headers";
 import {
     addSnippet,
     addUser,
+    deleteAccount,
     deleteSnippet,
-    getSnippet,
+    getSnippets,
     loginUser,
     updateSnippet,
 } from "./queries";
 import { Message, SnippetType } from "./types";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function handleSignUp(
     initialState: Message,
@@ -79,7 +81,7 @@ export async function handleLogin(
 export async function handleLogout(initialState: Message): Promise<Message> {
     const cookieStore = await cookies();
     cookieStore.delete("userId");
-    return { type: "success", message: "Logout successful" };
+    redirect("/login");
 }
 
 export async function handleAddSnippet(
@@ -91,25 +93,69 @@ export async function handleAddSnippet(
     const language: string = formData.get("language") as string;
     const code: string = formData.get("code") as string;
     const tags: string[] = formData.getAll("tags") as string[];
+    const isPublic = formData.get("isPublic") === "true";
+    console.log("is public", isPublic);
     const cookieStore = await cookies();
-    const user: string = cookieStore.get("userId")?.value as string;
-
-    if (!title || !description || !language || !code) {
+    const userId: string = cookieStore.get("userId")?.value as string;
+    console.log("tags", tags);
+    if (!title || !description || !code) {
         return { type: "error", message: "Please fill in all fields" };
     }
+    if (!language)
+        return { type: "error", message: "Please select a language" };
+    if (tags.length === 0) {
+        return { type: "error", message: "Please add at least one tag" };
+    }
+    if (title.length < 3) {
+        return {
+            type: "error",
+            message: "Title must be at least 3 characters",
+        };
+    }
+    if (description.length < 3) {
+        return {
+            type: "error",
+            message: "Description must be at least 3 characters",
+        };
+    }
+    if (code.length < 3) {
+        return {
+            type: "error",
+            message: "Code must be at least 3 characters",
+        };
+    }
+    if (description.length >= 300) {
+        return {
+            type: "error",
+            message: "Description must be less than 300 characters",
+        };
+    }
 
-    await addSnippet(title, description, language, tags, code, user);
+    await addSnippet(
+        title,
+        description,
+        language,
+        tags,
+        code,
+        userId,
+        isPublic
+    );
     revalidatePath("/");
     return { type: "success", message: "Snippet added successfully" };
 }
 
 export async function handleDeleteSnippet(formData: FormData): Promise<void> {
     const id: string = formData.get("id") as string;
-    await deleteSnippet(id);
+    const cookiesStore = await cookies();
+    const userId = cookiesStore.get("userId")?.value as string;
+    await deleteSnippet(id, userId);
     revalidatePath("/");
 }
 
-export async function getMySnippets(): Promise<SnippetType[]> {
+export async function getMySnippets(
+    query?: string,
+    language?: string
+): Promise<SnippetType[]> {
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
 
@@ -117,7 +163,7 @@ export async function getMySnippets(): Promise<SnippetType[]> {
         return [];
     }
 
-    const mySnippets = await getSnippet(userId);
+    const mySnippets = await getSnippets({ userId, query, language });
     return mySnippets;
 }
 
@@ -131,8 +177,63 @@ export async function handleUpdateSnippet(
     const language = formData.get("language") as string;
     const code = formData.get("code") as string;
     const tags = formData.getAll("tags") as string[];
+    const isPublic = formData.get("isPublic") === "true";
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value as string;
+    console.log("tags", tags);
+    if (!title || !description || !code) {
+        return { type: "error", message: "Please fill in all fields" };
+    }
+    if (!language)
+        return { type: "error", message: "Please select a language" };
+    if (tags.length === 0) {
+        return { type: "error", message: "Please add at least one tag" };
+    }
+    if (title.length < 3) {
+        return {
+            type: "error",
+            message: "Title must be at least 3 characters",
+        };
+    }
+    if (description.length < 3) {
+        return {
+            type: "error",
+            message: "Description must be at least 3 characters",
+        };
+    }
+    if (code.length < 3) {
+        return {
+            type: "error",
+            message: "Code must be at least 3 characters",
+        };
+    }
+    if (description.length >= 300) {
+        return {
+            type: "error",
+            message: "Description must be less than 300 characters",
+        };
+    }
 
-    await updateSnippet(id, { title, description, language, code, tags });
-    revalidatePath("/"); // zodat lijst herlaadt
+    await updateSnippet(id, userId, {
+        title,
+        description,
+        language,
+        code,
+        tags,
+        isPublic,
+    });
+    revalidatePath("/");
     return { type: "success", message: "Snippet updated successfully" };
+}
+
+export async function handleDeleteAccount() {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
+
+    if (!userId) return;
+
+    await deleteAccount(userId);
+    cookieStore.delete("userId");
+
+    redirect("/login");
 }

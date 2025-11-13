@@ -1,4 +1,4 @@
-import EditSnippetForm from "@/components/EditSnippetForm";
+import ViewSnippet from "@/components/ViewSnippet";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { getSnippetById } from "@/queries";
 import { redirect } from "next/navigation";
@@ -15,10 +15,11 @@ export default async function EditSnippetPage(props: {
     if (!snippet) {
         return <p className="text-gray-500">Snippet not found.</p>;
     }
+    console.log("snippet", snippet);
 
     return (
         <div className="max-w-2xl mx-auto mt-10 space-y-6">
-            <EditSnippetForm snippet={snippet} />
+            <ViewSnippet snippet={snippet} />
         </div>
     );
 }

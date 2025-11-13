@@ -10,7 +10,15 @@ export type SnippetType = {
     language: string;
     tags: string[];
     code: string;
-    user: string;
-    createdAt?: Date;
-    updatedAt?: Date;
+    user: User;
+    isPublic: boolean;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+};
+
+export type User = {
+    _id: string;
+    username: string;
+    email: string;
+    snippetCount: number;
 };

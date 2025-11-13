@@ -1,0 +1,16 @@
+export const languageExtensions: Record<string, string> = {
+    js: "js",
+    typescript: "ts",
+    html5: "html",
+    css3: "css",
+    python: "py",
+    php: "php",
+    cprogramming: "c",
+    "c++": "cpp",
+    java: "java",
+    ruby: "rb",
+    csharp: "cpp",
+    go: "go",
+    swift: "swift",
+    kotlin: "kt",
+};

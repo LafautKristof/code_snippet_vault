@@ -56,7 +56,8 @@ export async function addSnippet(
     language: string,
     tags: string[],
     code: string,
-    user: string
+    user: string,
+    isPublic: boolean
 ) {
     try {
         await connectDB();
@@ -67,6 +68,7 @@ export async function addSnippet(
             tags,
             code,
             user,
+            isPublic,
         });
         const result = await snippet.save();
         console.log("Snippet added:", result);
@@ -77,29 +79,96 @@ export async function addSnippet(
     }
 }
 
-export async function getSnippet(userId: string): Promise<SnippetType[]> {
-    console.log("userId in getSnippet", userId);
+export async function getSnippets({
+    userId,
+    onlyPublic,
+    query,
+    language,
+}: {
+    userId?: string;
+    onlyPublic?: boolean;
+    query?: string;
+    language?: string;
+}) {
     try {
         await connectDB();
-        const snippets = await Snippet.find({ user: userId })
+
+        const andConditions: Record<string, unknown>[] = [];
+
+        if (userId) {
+            andConditions.push({ user: userId });
+        }
+
+        if (onlyPublic) {
+            andConditions.push({ isPublic: true });
+        }
+
+        let matchedUserIds: string[] = [];
+        if (query) {
+            const users = await User.find({
+                username: { $regex: query, $options: "i" },
+            }).select("_id");
+            matchedUserIds = users.map((u) => u._id.toString());
+        }
+
+        if (query) {
+            andConditions.push({
+                $or: [
+                    { title: { $regex: query, $options: "i" } },
+                    { description: { $regex: query, $options: "i" } },
+                    { tags: { $regex: query, $options: "i" } },
+                    { code: { $regex: query, $options: "i" } },
+                    ...(matchedUserIds.length > 0
+                        ? [{ user: { $in: matchedUserIds } }]
+                        : []),
+                ],
+            });
+        }
+
+        if (language && language !== "all") {
+            andConditions.push({ language });
+        }
+
+        const mongoQuery =
+            andConditions.length > 0 ? { $and: andConditions } : {};
+
+        const shouldPopulate = onlyPublic;
+
+        const queryBuilder = Snippet.find(mongoQuery)
             .sort({ createdAt: -1 })
-            .lean<SnippetType[]>();
-        console.log("Snippet added:", snippets);
+            .lean();
+
+        if (shouldPopulate) {
+            queryBuilder.populate("user", "username");
+        }
+
+        const snippets = await queryBuilder;
+
         return snippets.map((s) => ({
-            ...s,
-            _id: s._id.toString(),
-            user: s.user.toString(),
+            _id: String(s._id),
+            title: s.title,
+            description: s.description,
+            language: s.language,
+            tags: s.tags,
+            code: s.code,
+            user: s.user,
+            isPublic: s.isPublic,
+            createdAt: s.createdAt ?? undefined,
+            updatedAt: s.updatedAt ?? undefined,
         }));
     } catch (error) {
-        console.error("Error adding snippet:", error);
+        console.error("❌ Error fetching snippets:", error);
         return [];
     }
 }
 
-export async function deleteSnippet(snippetId: string) {
+export async function deleteSnippet(snippetId: string, userId: string) {
     try {
         await connectDB();
-        const result = await Snippet.deleteOne({ _id: snippetId });
+        const result = await Snippet.deleteOne({
+            _id: snippetId,
+            user: userId,
+        });
         console.log("Snippet deleted:", result);
         return { type: "success", message: "Snippet deleted successfully" };
     } catch (error) {
@@ -114,13 +183,63 @@ export async function getSnippetById(id: string) {
         const snippet = await Snippet.findById(id).lean<SnippetType>();
         if (!snippet) return null;
         console.log("Snippet added:", snippet);
-        return snippet;
+        return {
+            _id: snippet._id.toString(),
+            title: snippet.title,
+            description: snippet.description,
+            language: snippet.language,
+            tags: snippet.tags || [],
+            code: snippet.code,
+            user: snippet.user.toString(),
+            isPublic: snippet.isPublic,
+            createdAt: snippet.createdAt?.toString?.() ?? null,
+            updatedAt: snippet.updatedAt?.toString?.() ?? null,
+        };
     } catch (error) {
         console.error("Error adding snippet:", error);
         return null;
     }
 }
-export async function updateSnippet(id: string, data: Partial<SnippetType>) {
-    await connectDB();
-    await Snippet.findByIdAndUpdate(id, data);
+export async function updateSnippet(
+    id: string,
+    userId: string,
+    data: Partial<SnippetType>
+) {
+    try {
+        await connectDB();
+        await Snippet.findOneAndUpdate({ _id: id, user: userId }, data);
+    } catch (error) {
+        console.error("Error updating snippet:", error);
+    }
+}
+
+export async function deleteAccount(userId: string) {
+    try {
+        await connectDB();
+        await Snippet.deleteMany({ user: userId });
+        await User.deleteOne({ _id: userId });
+    } catch (error) {
+        console.error("Error deleting account:", error);
+    }
+}
+
+export async function getUserInfo(userId: string) {
+    try {
+        await connectDB();
+
+        const user = await User.findById(userId).select("-password");
+
+        if (!user) return null;
+        const snippetCount = await Snippet.countDocuments({ user: userId });
+        return {
+            _id: user._id.toString(),
+            username: user.username,
+            email: user.email,
+            createdAt: user.createdAt,
+            snippetCount,
+        };
+    } catch (error) {
+        console.error("❌ Error fetching user info:", error);
+        return null;
+    }
 }

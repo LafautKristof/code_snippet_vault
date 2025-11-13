@@ -7,16 +7,13 @@ if (!MONGODB_URI) {
     throw new Error("❌ MONGODB_URI is niet gedefinieerd in .env");
 }
 
-// Gebruik globale cache (belangrijk voor Next.js hot reload)
 let isConnected = false;
 
 export async function connectDB() {
     if (isConnected) {
-        // Skip reconnecting if already connected
         return;
     }
 
-    // Use mongoose.connection.readyState for extra safety
     if (mongoose.connection.readyState >= 1) {
         isConnected = true;
         return;

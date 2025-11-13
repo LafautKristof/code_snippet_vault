@@ -1,12 +1,15 @@
 "use client";
+//shadcn imports
 import { Button } from "./ui/button";
+//icon imports
 import { Trash2, LoaderPinwheel } from "lucide-react";
-import { useFormStatus } from "react-dom"; //altijd client component
+//react imports
+import { useFormStatus } from "react-dom";
 const RemoveSnippetButton = () => {
     const { pending } = useFormStatus();
     return (
         <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             disabled={pending}
             className="h-8 w-8 text-muted-foreground hover:text-destructive"
