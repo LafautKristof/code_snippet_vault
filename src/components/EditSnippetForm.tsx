@@ -78,20 +78,20 @@ export default function EditSnippetForm({ snippet }: { snippet: SnippetType }) {
                     <input type="hidden" name="id" value={snippet._id} />
 
                     {/* HEADER LINE: Title + Language + Switch */}
-                    <div className="flex gap-3 items-center flex-wrap">
+                    <div className="flex gap-3 items-center flex-wrap ">
                         <Input
                             name="title"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="Title"
-                            className="flex-1"
+                            className="flex-1 mb-2"
                             required
                         />
 
                         {/* Language */}
                         <Badge
                             variant="outline"
-                            className="flex items-center gap-2 text-sm font-medium text-muted-foreground border border-border/50 rounded-md px-2 py-1"
+                            className="flex items-center gap-2 text-sm font-medium text-muted-foreground border border-border/50 rounded-md px-2 py-1 "
                         >
                             {lang ? (
                                 lang.key === "cprogramming" ? (
@@ -143,7 +143,7 @@ export default function EditSnippetForm({ snippet }: { snippet: SnippetType }) {
                     />
 
                     {/* TAGS */}
-                    <div>
+                    <div className=" mb-2">
                         <TagsInput value={tags} onTagsChange={setTags} />
                         {tags.map((tag) => (
                             <input
