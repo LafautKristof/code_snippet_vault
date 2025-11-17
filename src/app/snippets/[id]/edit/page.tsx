@@ -8,6 +8,7 @@ export default async function EditSnippetPage(props: {
 }) {
     const params = await props.params;
     const snippet = await getSnippetById(params.id);
+    console.log("snippet", snippet);
     const user = await getCurrentUser();
     if (!user) {
         redirect("/login");

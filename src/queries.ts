@@ -180,7 +180,9 @@ export async function deleteSnippet(snippetId: string, userId: string) {
 export async function getSnippetById(id: string) {
     try {
         await connectDB();
-        const snippet = await Snippet.findById(id).lean<SnippetType>();
+        const snippet = await Snippet.findById(id)
+            .populate("user")
+            .lean<SnippetType>();
         if (!snippet) return null;
         console.log("Snippet added:", snippet);
         return {
@@ -190,7 +192,12 @@ export async function getSnippetById(id: string) {
             language: snippet.language,
             tags: snippet.tags || [],
             code: snippet.code,
-            user: snippet.user.toString(),
+            user: {
+                _id: snippet.user._id.toString(),
+                username: snippet.user.username,
+                email: snippet.user.email,
+                snippetCount: snippet.user.snippetCount,
+            },
             isPublic: snippet.isPublic,
             createdAt: snippet.createdAt?.toString?.() ?? null,
             updatedAt: snippet.updatedAt?.toString?.() ?? null,
